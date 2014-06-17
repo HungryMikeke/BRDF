@@ -1,0 +1,51 @@
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<!-- Title -->
+	<title>BRDF Rendering in WebGL</title>
+	<!-- CSS Stylesheet -->
+	<link type="text/css" rel="stylesheet" href="css/style.css">
+	<!-- All JavaScript at the bottom, except this Modernizr build which enables HTML5 elements & feature detects for optimal performance. -->
+	<script type="text/javascript" src="js/lib/modernizr-2.7.2.js"></script>
+</head>
+
+<body>
+	<header>
+	</header>
+
+	<div id="main">
+		<canvas id="webGLCanvas"></canvas>
+		<div id="sideBar">
+			<ul>
+			<li>
+				<span class="label">Frame Rate</span>
+				<span id="frameRateStats"></span>
+			</li>
+			<li>
+				<span class="label">Material</span>
+				<select id="brdfMaterialSelector" size="1"></select>
+			</li>
+			<li>
+				<span class="label">Exposure</span>
+				<div id="exposureSlider" class="exposureSlider">
+					<span id="exposureText"></span>
+				</div>
+			</li>
+			</ul>
+		</div>
+		<div id="footer">
+			BRDF Datasets used from
+			<a href="http://www.merl.com/brdf/">MERL BRDF Database</a>
+		</div>
+	</div>
+
+	<footer>
+	</footer>
+	
+	<!-- JavaScript at bottom for Fast Page Loading -->
+	<script type="text/javascript" src="js/lib/require.js" defer async="true" data-main="js/main_BRDF.js">
+	</script>
+</body>
+
+</html>
