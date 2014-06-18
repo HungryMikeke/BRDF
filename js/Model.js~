@@ -1,4 +1,193 @@
 /**
+ * Defines the semantic role of a vertex attribute
+ * @readonly
+ * @enum {string}
+ */
+
+var AttributeRole = {
+	/**
+	 * Attribute has an unknown role.
+	 */
+	'Unknown'	: '',
+	/**
+	 * Attribute is a vertex position.
+	 */    
+	'Position'  : 'p',
+	/**
+	 * Attribute is a vertex normal.
+	 */    
+	'Normal'    : 'n',
+	/**
+	 * Attribute is a set of texture coordinates.
+	 */    
+	'TexCoord'  : 't',
+	/**
+	 * Attribute is a color.
+	 */    
+	'Color'     : 'c',
+	/**
+	 * Attribute is a tangent.
+	 */    
+	'Tangent'   : 'tg',
+	/**
+	 * Attribute is a bitangent.
+	 */    
+	'BiTangent' : 'b'
+};
+  
+/**
+ * Attempts to find the semantic role of a vertex attribute based
+ * on its name.
+ * @param {object} info Info record returned by WebGL
+ * @returns {AttributeRole} Guessed attribute role
+ */
+
+/*
+var guessAttributeRole = function(info) {
+	var format = /A(.+)/;
+	var m = info.name.match(format);
+	var name = (m === null) ? info.name : m[1];
+	var role = AttributeRole[name] || AttributeRole.Unknown;
+	console.log(info.name + ' is a ' + role + '.');
+	return role;
+};
+*/
+
+/**
+ * @constructor
+ * @classdesc Exception that is thrown, when the specified vertex format string is invalid. 
+ */
+
+var VertexFormatError = function(message) {
+	this.toString = function() { return message; };
+}; 
+
+/**
+ * @constructor
+ * @classdesc Exception that is thrown, when the passed vertex data does not match the specified vertex format. 
+ */
+
+var VertexDataError = function(message) {
+	this.toString = function() { return message; };
+};
+
+var UnknownUniformError = function(message) {
+	this.toString = function() { return message; };
+};  
+
+/**
+ * Creates a new VertexFormat instance
+ * @constructor
+ * @classdesc Declares the layout of vertex attribute data
+ * @param {string} format String that specifies the format of vertex attributes.
+ */
+
+var VertexFormat = function(vertices, format) {
+
+	/**
+	 * Defined vertex attributes
+	 * @type {Array.<object>}
+	 */
+	this.attributes = [];
+    /**
+     * Vertex format string
+     * @type {string}
+     */
+    this.format = format;
+    /**
+     * Total size of defined vertex attributes in number of floats
+     */
+    this.size = 0;
+    
+    var readBlock = function(blockFormat) {
+		
+		var pattern = /\s*([a-zA-Z]+)([0-9]+)(.*)/;
+		var blockSize = 0;
+		var attrs = [];
+		
+		while (blockFormat.length > 0) 
+		{
+			m = blockFormat.match(pattern);
+			if (m === null) {
+				throw new VertexFormatError('Vertex format string is invalid at position ' + format.length - expr.length);
+				// return;
+			}
+
+			blockFormat = m[3];
+			role = AttributeRole[findFirstKey(AttributeRole, m[1]) || AttributeRole.Unknown];
+			size = parseInt(m[2]);
+			blockSize += size;
+			if (size < 1 || size > 16) {
+				throw new VertexFormatError('Vertex format string contains attribute with invalid size (' + m[1] + m[2] + ').');
+			}
+			if (role === AttributeRole.Unknown) {
+				throw new VertexFormatError('Vertex format string contains attribute with unknown role (' + m[1] + m[2] + ').');
+			}
+			attrs.push({ role: role, size: size });
+		}
+		return { attrs: attrs, size: blockSize };
+	};
+    
+    // Read blocks:
+    var blockFormats = format.split('|');
+    var blocks = [];
+    for (var i = 0; i < blockFormats.length; i++) {
+		var block = readBlock(blockFormats[i]);
+		blocks.push(block);
+		this.size += block.size;
+    }
+    
+    if (vertices.length % this.size !== 0) {
+		throw new VertexDataError('Length of vertices array does not match vertex format');
+    }
+    
+    // Create attributes and calculate stride and offset:
+    var vertexCount = vertices.length / this.size;
+    var blockOffset = 0;
+    var self = this;
+    
+	$.each(blocks, function() {
+		
+		var block = this;
+		var offset = blockOffset;
+		
+		$.each(block.attrs, function() {
+			
+			self.attributes.push({
+				role: this.role,
+				size: this.size,
+				stride: (block.attrs.length > 1) ? block.size * 4 : 0,
+				offset: offset});
+			
+			offset += this.size * 4;
+		});
+		
+		blockOffset += block.size * vertexCount * 4;
+	});
+};
+  
+/**
+ * Find the vertex attribute with the specified role
+ * @param {AttributeRole} role Attribute role
+ * @returns {Object=} The vertex attribute definition or null if no 
+ * attribute with the specified role exists. 
+ */
+
+VertexFormat.prototype.find = function(role) {
+
+	var attrs = this.attributes;
+	
+	for (var i = 0; i < attrs.length; i++) {
+		var attr = attrs[i];
+		if (attr.role === role) {
+			return attr;
+		}
+	}
+
+	return null;
+};
+
+/**
  * Creates a new Mesh instance
  * @param {Float32Array} vertices Vertex data
  * @param {Uint16Array} indices Index data
@@ -252,7 +441,7 @@ Model.prototype.load = function(data)
         	}
         	else if (Math.abs(tc[0] - u) > eps || Math.abs(tc[1] - v) > eps) 
 			{
-          		// Texture coordinates mismatch, so duplicate vertex with new texture coordinates:
+          		// Texture coordinates mismatch, so duplicate vertex with new texture coordinates
           		var nvi = positions.length / 3;
           		var vi3 = vi * 3;
           		positions.push(positions[vi3]);

@@ -8,15 +8,18 @@
  
 require.config({
 
-	baseUrl:		'js/lib',
+	baseUrl:		'js',
 	paths: {
-		jquery:		'jquery-1.11.0',
-		gl-matrix:	'gl-matrix-2.2.1',
-		modernizr:	'modernizr-2.7.2',
+		jquery:		'lib/jquery-1.11.0',
+		gl-matrix:	'lib/gl-matrix-2.2.1',
+		modernizr:	'lib/modernizr-2.7.2',
+		model:		'Model',
+		shader:		'Shader',
+		timer:		'Timer',
 	}
 });
  
-require(["jquery", "gl-matrix", "modernizr"], function($)
+require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], function($)
 {
 	// 全局变量
 	var g_WebGLContext = undefined;
@@ -53,7 +56,7 @@ require(["jquery", "gl-matrix", "modernizr"], function($)
 		var vertShaderSource = undefined;
 		var fragShaderSource = undefined;
 
-		// 回调函数（读取完文件）
+		// 回调函数（读取文件）
 		var onGetVertShaderSource = function(source) {
 			vertShaderSource = source;
 			$.get(fragShaderFilename, onGetFragShaderSource, 'text');	
@@ -96,6 +99,7 @@ require(["jquery", "gl-matrix", "modernizr"], function($)
 	
 	var initScene = function() {
 
+		// Init Camera & Projection
 		g_ProjectionMatUniformLocation = g_WebGLContext.getUniformLocation(g_Shader.getGLProgramID(), 'projectionMat');
 		g_CameraViewMatUniformLocation = g_WebGLContext.getUniformLocation(g_Shader.getGLProgramID(), 'cameraViewMat');
 
@@ -104,13 +108,18 @@ require(["jquery", "gl-matrix", "modernizr"], function($)
 
 		g_WebGLContext.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
 		g_WebGLContext.uniformMatrix4fv(g_CameraViewMatUniformLocation, false, cameraViewMatrix);
+
+		// Init Model
+		
 	};
 
 	var onLoadModelFile = function(model) {
 		
 		var onLoadShader = function(result, shader) {
-			
+				
 			g_Shader = shader;
+			
+			// 初始化场景
 			initScene();
 		}
 
