@@ -117,18 +117,20 @@ var VertexFormat = function(vertices, format) {
 			role = AttributeRole[findFirstKey(AttributeRole, m[1]) || AttributeRole.Unknown];
 			size = parseInt(m[2]);
 			blockSize += size;
+			
 			if (size < 1 || size > 16) {
 				throw new VertexFormatError('Vertex format string contains attribute with invalid size (' + m[1] + m[2] + ').');
 			}
 			if (role === AttributeRole.Unknown) {
 				throw new VertexFormatError('Vertex format string contains attribute with unknown role (' + m[1] + m[2] + ').');
 			}
+			
 			attrs.push({ role: role, size: size });
 		}
 		return { attrs: attrs, size: blockSize };
 	};
     
-    // Read blocks:
+    // Read Blocks:
     var blockFormats = format.split('|');
     var blocks = [];
     for (var i = 0; i < blockFormats.length; i++) {
@@ -188,6 +190,28 @@ VertexFormat.prototype.find = function(role) {
 };
 
 /**
+ * Returns the key of the first element with the specified value
+ * @param {object} object Object that is iterated through 
+ * @param {any} value Value of the element that is searched
+ * @returns {any} Key of the element with specified value 
+ */
+
+VertexFormat.prototype.findFirstKey = function(object, value) {
+	
+	var result = null;
+	
+	$.each(object, function(key, v) {
+		if (v === value) {
+			result = key;
+			return false;
+			// return result;
+		}
+	});
+	
+	return result;
+};
+
+/**
  * Creates a new Mesh instance
  * @param {Float32Array} vertices Vertex data
  * @param {Uint16Array} indices Index data
@@ -201,8 +225,10 @@ VertexFormat.prototype.find = function(role) {
  *   vertices with a set of customizable attributes 
  */
 
-var Mesh = function(vertices, indices, format, primitive, calculateTangents) {
+var Mesh = function(gl, vertices, indices, format, primitive, calculateTangents) {
     
+	this.gl = gl;
+
     var getPrimitiveCount = function(indexCount, primitive) {
       
 		if (primitive === gl.TRIANGLES) {
@@ -259,9 +285,11 @@ var Mesh = function(vertices, indices, format, primitive, calculateTangents) {
     this.primitiveCount = getPrimitiveCount(this.indexCount, this.primitive);
     
     if (true === calculateTangents) {
-		vertices = this.calculateTangents(this, vertices, indices);
+		this.vertices = this.calculateTangents(this, vertices, indices);
     }
-    
+
+	this.indices = indices;
+
     /**
      * Vertex buffer
      * @type {WebGLBuffer}
@@ -294,7 +322,7 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
     var texAttr = this.vertexFormat.find(AttributeRole.TexCoord);
     
 	// Triangles with XYZ position and XY texture coordinates needed: 
-    if (this.primitive !== gl.TRIANGLES || 
+    if (this.primitive !== this.gl.TRIANGLES || 
 		posAttr === null || posAttr.size !== 3 ||
         texAttr === null || texAttr.size !== 2) 
 	{
@@ -314,8 +342,8 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
     var q2 = new Float32Array(3);
     var u1 = new Float32Array(2);					// s1, t1
     var u2 = new Float32Array(2);					// s2, t2    
-    
-    var setQU = function(indices) 
+	
+	var setQU = function(indices) 
 	{
 		// Fetch Position and Texture Coordinates for all 3 triangle vertices
 		for (var j = 0; j < 3; j++) 
@@ -402,7 +430,10 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
  * @constructor 
  * @classdesc Represents a drawable 3D model composed of 3D meshes.
  */  
-var Model = function() {
+var Model = function(gl) {
+	
+	this.gl = gl;
+
 	/**
      * Meshes of the model
      * @type {Mesh}
@@ -444,12 +475,14 @@ Model.prototype.load = function(data)
           		// Texture coordinates mismatch, so duplicate vertex with new texture coordinates
           		var nvi = positions.length / 3;
           		var vi3 = vi * 3;
-          		positions.push(positions[vi3]);
+          		
+				positions.push(positions[vi3]);
           		positions.push(positions[vi3 + 1]);
           		positions.push(positions[vi3 + 2]);
           		newTexCoords.push(u);
           		newTexCoords.push(v);
-          		if (normals !== undefined) 
+          		
+				if (normals !== undefined) 
 				{
             		normals.push(normals[vi3]);
             		normals.push(normals[vi3 + 1]);
@@ -506,7 +539,8 @@ Model.prototype.load = function(data)
         	offset += vertexCount * 2;
       	}
 
-      	var mesh = new Mesh(vertices, indices, format, gl.TRIANGLES, true);
+		// Create a Mesh object
+      	var mesh = new Mesh(this.gl, vertices, indices, format, this.gl.TRIANGLES, true);
      	self.meshes.push(mesh);
     });
 };

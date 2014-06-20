@@ -27,9 +27,23 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	var g_Model = undefined;
 
 	var g_CanvasAspectRatio = 1.0;
+	var g_AnimationKey = 0.0;
 
+	// Uniform Locations 4 Shader
+	var g_ModelMatUniformLocation = undefined;
 	var g_CameraViewMatUniformLocation = undefined;
 	var g_ProjectionMatUniformLocation = undefined;
+	var g_LightDirVecUniformLocation = undefined;
+
+	// Attribute Locations 4 Shader
+	var g_PositionAttribLocation = undefined;
+	var g_NormalAttribLocation = undefined;
+	var g_TexCoordAttribLocation = undefined;
+	var g_TangentAttribLocation = undefined;
+
+	// VBOs Index
+	var g_VertexBufferObject = 0;
+	var g_IndexBufferObject = 0;
 
 	// 函数
 	var initWebGLContext = function(canvasID) {
@@ -37,9 +51,9 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		var webGLContext;
 		
 		var canvas = document.getElementById(canvasID);
-		if (undefined != canvas) {
-			// webGLContext = canvas.getContext("experimental-webgl");
-			webGLContext = canvas.getContext("webgl");
+		if (undefined != canvas) 
+		{
+			webGLContext = canvas.getContext("experimental-webgl");
 			
 			webGLContext.enable(webGLContext.DEPTH_TEST);
 			webGLContext.enable(webGLContext.CULL_FACE);
@@ -97,21 +111,102 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		$.getJSON('res/monkey.json', onGetJSONFileDone);	
 	};
 	
-	var initScene = function() {
+	var initScene = function(gl) {
 
-		// Init Camera & Projection
-		g_ProjectionMatUniformLocation = g_WebGLContext.getUniformLocation(g_Shader.getGLProgramID(), 'projectionMat');
-		g_CameraViewMatUniformLocation = g_WebGLContext.getUniformLocation(g_Shader.getGLProgramID(), 'cameraViewMat');
+		// Shader Program
+		var program = g_Shader.getGLProgramID();
+
+		// Init Light Direction Slot
+		g_LightDirVecUniformLocation = gl.getUniformLocation(program, 'lightDirVec');
+
+		// Init Model Transform & Camera View & Projection Matrix
+		g_ProjectionMatUniformLocation = gl.getUniformLocation(program, 'projectionMat');
+		g_CameraViewMatUniformLocation = gl.getUniformLocation(program, 'cameraViewMat');
+		g_ModelMatUniformLocation = gl.getUniformLocation(program, 'modelTransMat');
 
 		var projectionMatrix = mat4.perspective(45.0, g_CanvasAspectRatio, 0.1, 100.0);
 		var cameraViewMatrix = mat4.lookAt([0, 0, 2.8], [0, 0, 0], [0, 1, 0]);
 
-		g_WebGLContext.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
-		g_WebGLContext.uniformMatrix4fv(g_CameraViewMatUniformLocation, false, cameraViewMatrix);
+		gl.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
+		gl.uniformMatrix4fv(g_CameraViewMatUniformLocation, false, cameraViewMatrix);
+	
+		// Init Array Slots
+		g_PositionAttribLocation = gl.getUniformLocation(program, 'vPosAttrib');
+		g_NormalAttribLocation = gl.getUniformLocation(program, 'vNormalAttrib');
+		g_TexCoordAttribLocation = gl.getUniformLocation(program, 'vTexCoordAttrib');
+		g_TangentAttribLocation = gl.getUniformLocation(program, 'vTangentAttrib');
 
 		// Init Model
+		g_VertexBufferObject = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, g_VertexBufferObject);
+		gl.bufferData(gl.ARRAY_BUFFER, g_Model.meshes[0].vertices, gl.STATIC_DRAW);
 		
+		g_IndexBufferObject = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, g_Model.meshes[0].indices, gl.STATIC_DRAW);
 	};
+
+	// ------------------
+	//  Render the Scene
+	// ------------------
+
+	var draw = function() {
+		
+		// Use Program
+		g_WebGLContext.useProgram(g_Shader.getGLProgramID());
+		
+		// Light Direction Vector	
+		var lightDirVec = vec3.create([0, 0, 1]);
+		mat4.multiplyVec3(mat4.rotateX(mat4.identity(), Math.sin(g_AnimationKey * Math.PI * 8.0) * Math.PI * 0.5), lightDirVec);	
+		gl_WebGLContext.uniform3fv(g_LightDirVecUniformLocation, lightDirVec);
+
+		// Object Transform Matrix
+		var objectTransMatrix = mat4.rotateY(mat4.identity(), g_AnimationKey * Math.PI * 2.0);
+		g_WebGLContext.uniformMatrix4fv(g_ModelMatUniformLocation, false, objectTransMatrix);
+
+		// Active the VBOs
+		g_WebGLContext.bindBuffer(g_WebGLContext.ARRAY_BUFFER, g_VertexBufferObject);
+	    g_WebGLContext.bindBuffer(g_WebGLContext.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject); 
+    	
+		// Improve disabling unused attribute slots
+		var count = g_WebGLContext.getParameter(g_WebGLContext.MAX_VERTEX_ATTRIBS);
+		for (var i = 0; i < count; i++) {
+			g_WebGLContext.disableVertexAttribArray(i);
+		}
+
+		// Assign portions of the vertex buffer to attribute index used by the effect
+		var attrs = g_Model.meshes[0].vertexFormat.attributes;
+		for (var i = 0; i < attrs.length; ++i) 
+		{
+			var loc = undefined;
+
+			// Search vertex format declaration for a fitting vertex attribute:  
+			if (attrs[i].role === 'p') {
+				loc = g_PositionAttribLocation;
+			} else if (attrs[i].role === 'n') {
+				loc = g_NormalAttribLocation;
+			} else if (attrs[i].role === 't') {
+				loc = g_TexCoordAttribLocation;
+			} else if (attrs[i].role === 'tg') {
+				loc = g_TangentAttribLocation;
+			}
+
+			if (loc) 
+			{
+				// Enable & Set Pointer of Vertex Attrib Arrays
+				g_WebGLContext.enableVertexAttribArray(loc);
+				g_WebGLContext.vertexAttribPointer(loc, attrs[i].size, g_WebGLContext.FLOAT, false, attrs[i].stride, attrs[i].offset);
+			}
+
+			// offset += attr[i].size * 4;
+		}
+    
+		if (g_IndexBufferObject) {
+			g_WebGLContext.drawElements(g_Model.meshes[0].primitive, g_Model.meshes[0].indexCount, g_WebGLContext.UNSIGNED_SHORT, 0);
+		} else {
+			g_WebGLContext.drawArrays(g_Model.meshes[0].primitive, 0, g_Model.meshes[0].indexCount);
+		}
+	}
 
 	var onLoadModelFile = function(model) {
 		
@@ -175,12 +270,12 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	// 1. initWebGLContext ->
 	// 2. initModel ->
 	// 3. initShader ->
-	// 4. initScene (ModelView, Projection) ->
+	// 4. initScene (ModelView, Projection, VBOs) ->
 
 	// 初始化 WebGL 上下文环境
 	g_WebGLContext = initWebGLContext("webGLCanvas");
 
 	// 开始载入模型
-	initModel('res/monkey.json', onLoadModelFile);
+	initModel('model/monkey.json', onLoadModelFile);
 });
 
