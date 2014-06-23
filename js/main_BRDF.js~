@@ -33,8 +33,19 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	// Uniform Locations 4 Shader
 	var g_ModelMatUniformLocation = undefined;
 	var g_CameraViewMatUniformLocation = undefined;
+	var g_CameraPosVecUniformLocation = undefined;
 	var g_ProjectionMatUniformLocation = undefined;
 	var g_LightDirVecUniformLocation = undefined;
+
+	var g_DiffuseColorVecUniformLocation = undefined;
+	var g_SpecularIntensityUniformLocation = undefined;
+	var g_ExposureUniformLocation = undefined;
+	
+	var g_TextureWidthUniformLocation = undefined;
+	var g_TextureHeightUniformLocation = undefined;
+	var g_SegThetaUniformLocation = undefined;
+
+	var g_BRDFMapUniformLocation = undefined;
 
 	// Attribute Locations 4 Shader
 	var g_PositionAttribLocation = undefined;
@@ -60,6 +71,9 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 			webGLContext.enable(webGLContext.CULL_FACE);
 		
 			webGLContext.cullFace(webGLContext.BACK);
+
+			webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
+			webGLContext.clearDepth(0.0);
 		}
 
 		return webGLContext;	
@@ -120,17 +134,44 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		// Init Light Direction Slot
 		g_LightDirVecUniformLocation = gl.getUniformLocation(program, 'vLightDir');
 
-		// Init Model Transform & Camera View & Projection Matrix
+		// Init Model Transform & Camera View & Projection Matrix Slots
 		g_ProjectionMatUniformLocation = gl.getUniformLocation(program, 'mProjection');
 		g_CameraViewMatUniformLocation = gl.getUniformLocation(program, 'mCameraView');
+		g_CameraPosVecUniformLocation = gl.getUniformLocation(program, 'vCameraPos');
 		g_ModelMatUniformLocation = gl.getUniformLocation(program, 'mModelTrans');
 
 		var projectionMatrix = mat4.perspective(45.0, g_CanvasAspectRatio, 0.1, 100.0);
 		var cameraViewMatrix = mat4.lookAt([0, 0, 2.8], [0, 0, 0], [0, 1, 0]);
+		var cameraPosVec = vec3.create([0, 0, 2.8]);
 
 		gl.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
 		gl.uniformMatrix4fv(g_CameraViewMatUniformLocation, false, cameraViewMatrix);
-	
+		gl.uniform3fv(g_CameraPosVecUniformLocation, cameraPosVec);	
+		
+		// Init Light Argument Slots
+		g_DiffuseColorVecUniformLocation = gl.getUniformLocation(program, 'vDiffuseColor');
+		g_SpecularIntensityUniformLocation = gl.getUniformLocation(program, 'fSpecularIntensity');
+		g_ExposureUniformLocation = gl.getUniformLocation(program, 'fExposure');
+
+		gl.uniform3fv(g_DiffuseColorVecUniformLocation, vec3.create([0.0, 0.0, 0.0]));
+		gl.uniform1f(g_SpecularIntensityUniformLocation, 1.0);
+		gl.uniform1f(g_ExposureUniformLocation, g_Exposure);
+
+		// Init Texture Slots
+		g_TextureWidthUniformLocation = gl.getUniformLocation(program, 'fTextureWidth');
+		g_TextureHeightUniformLocation = gl.getUniformLocation(program, 'fTextureHeight');
+		g_SegThetaUniformLocation = gl.getUniformLocation(program, 'SegTheta');
+
+		g_BRDFMapUniformLocation = gl.getUniformLocation(program, 'BRDFMap');
+
+		var segTheta = 32.0;
+
+		gl.uniform1f(g_TextureWidthUniformLocation, segTheta * 4.0);
+		gl.uniform1f(g_TextureHeightUniformLocation, segTheta * segTheta);
+		gl.uniform1f(g_SegThetaUniformLocation, segTheta);
+
+		gl.uniform1f(g_ExposureUniformLocation, g_Exposure);
+
 		// Init Array Slots
 		g_PositionAttribLocation = gl.getUniformLocation(program, 'vPosAttrib');
 		g_NormalAttribLocation = gl.getUniformLocation(program, 'vNormalAttrib');

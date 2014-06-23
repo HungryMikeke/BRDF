@@ -12,18 +12,6 @@ uniform mat4 mModelTrans;
 
 uniform vec3 vLightDir;
 
-uniform vec3 vDiffuseColor;
-uniform float fSpecularIntensity;
-uniform float fExposure;
-
-uniform float fTextureWidth;
-uniform float fTextureHeight;
-uniform float fSegTheta;													// Resolution of theta
-
-float SegPhi = fSegTheta * 4.0;												// Number of segments per longitude angle
-const float PI = 3.1415926535897932384626433832795028841971694;
-const float PI_DIV_2 = PI * 0.5;
-
 // Attribute Variables (Input)
 attribute vec3 vPosAttrib;
 attribute vec2 vNormalAttrib;
