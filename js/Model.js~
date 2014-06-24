@@ -1,3 +1,12 @@
+// ----------
+//  Model.js
+// ----------
+
+define(['jquery', 'glmatrix'], function($, glmatrix) 
+{
+	var mat4 = glmatrix.mat4;
+	var vec3 = glmatrix.vec3;
+
 /**
  * Defines the semantic role of a vertex attribute
  * @readonly
@@ -99,6 +108,29 @@ var VertexFormat = function(vertices, format) {
      */
     this.size = 0;
     
+	/**
+	 * Returns the key of the first element with the specified value
+	 * @param {object} object Object that is iterated through 
+	 * @param {any} value Value of the element that is searched
+	 * @returns {any} Key of the element with specified value 
+	 */
+
+	var findFirstKey = function(object, value) {
+		
+		var result = null;
+		
+		$.each(object, function(key, v) {
+
+			if (v === value) {
+				result = key;
+				// return false;
+				return result;
+			}
+		});
+		
+		return result;
+	};
+
     var readBlock = function(blockFormat) {
 		
 		var pattern = /\s*([a-zA-Z]+)([0-9]+)(.*)/;
@@ -187,28 +219,6 @@ VertexFormat.prototype.find = function(role) {
 	}
 
 	return null;
-};
-
-/**
- * Returns the key of the first element with the specified value
- * @param {object} object Object that is iterated through 
- * @param {any} value Value of the element that is searched
- * @returns {any} Key of the element with specified value 
- */
-
-VertexFormat.prototype.findFirstKey = function(object, value) {
-	
-	var result = null;
-	
-	$.each(object, function(key, v) {
-		if (v === value) {
-			result = key;
-			return false;
-			// return result;
-		}
-	});
-	
-	return result;
 };
 
 /**
@@ -351,19 +361,19 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 			var vi = indices[j];					// Vertex index
 
 			// Fetch Vertex Position X, Y & Z
-			for (var c = 0; c < 3; c++) {
+			for (var c = 0; c < 3; ++c) {
 				pos[j * 3 + c] = vertices[vi * pStride + pOffset + c];
 			}
 			// Fetch Texture Coordinates X & Y:
-			for (var c = 0; c < 2; c++) {
-				tex[j * 2 + c] = vertices[vi * tStride + tOffset + c];
+			for (var d = 0; d < 2; ++d) {
+				tex[j * 2 + d] = vertices[vi * tStride + tOffset + d];
 			}
 		}
 
 		// Calculate difference vectors:
-		for (var c = 0; c < 3; c++) {
-			q1[c] = pos[c + 3] - pos[c];
-			q2[c] = pos[c + 6] - pos[c];
+		for (var i = 0; i < 3; ++i) {
+			q1[i] = pos[i + 3] - pos[i];
+			q2[i] = pos[i + 6] - pos[i];
 		}
 
 		u1[0] =  tex[5] - tex[1];					//  t2
@@ -382,13 +392,13 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 	{
 		// Set vertex indices of triangle:
 		if (!indices) {
-			for (var i = 0; i < 3; i++) {
+			for (var i = 0; i < 3; ++i) {
 				triIndices[i] = index + i;
 			}
 		}
 		else {
-			for (var i = 0; i < 3; i++) {
-				triIndices[i] = indices[index + i];
+			for (var j = 0; j < 3; ++j) {
+				triIndices[j] = indices[index + j];
 			}
 		}
       
@@ -397,14 +407,14 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
       
 		// Calculate tangent of triangle:
 		var frac = 1.0 / (u1[0] * u2[1] - u2[0] * u1[1]);
-		for (var i = 0; i < 3; i++) {
+		for (var i = 0; i < 3; ++i) {
 			t[i] = ((u1[0] * q1[i] + u1[1] * q2[i]) * frac);
 		}
 		vec3.normalize(t);
       
 		// Accumulate triangle tangent to vertex tangents:
-		for (var i = 0; i < 3; i++) {
-			var vi = triIndices[i] * 3;
+		for (var j = 0; j < 3; ++j) {
+			var vi = triIndices[j] * 3;
 			tangents.set(t, vi);
 		}
 
@@ -540,8 +550,18 @@ Model.prototype.load = function(data)
       	}
 
 		// Create a Mesh object
-      	var mesh = new Mesh(this.gl, vertices, indices, format, this.gl.TRIANGLES, true);
+      	var mesh = new Mesh(self.gl, vertices, indices, format, self.gl.TRIANGLES, true);
      	self.meshes.push(mesh);
     });
 };
+
+	/*
+	return {
+		VertexFormat:	VertexFormat,
+		Mesh:			Mesh,
+		Model:			Model,    
+	};
+	*/
+
+});
 

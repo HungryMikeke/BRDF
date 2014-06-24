@@ -11,7 +11,7 @@ require.config({
 	baseUrl:		'js',
 	paths: {
 		jquery:		'lib/jquery-1.11.0',
-		gl-matrix:	'lib/gl-matrix-2.2.1',
+		glmatrix:	'lib/gl-matrix-1.3.1',
 		modernizr:	'lib/modernizr-2.7.2',
 		model:		'Model',
 		shader:		'Shader',
@@ -19,12 +19,15 @@ require.config({
 	}
 });
  
-require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], function($)
+require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix, glmodel)
 {
+	var mat4 = glmatrix.mat4;
+	var vec3 = glmatrix.vec3;
+
 	// 全局变量
-	var g_WebGLContext = undefined;
-	var g_Shader = undefined;
-	var g_Model = undefined;
+	var g_WebGLContext;
+	var g_Shader;
+	var g_Model;
 	
 	// 全局参数
 	var g_CanvasAspectRatio = 1.0;
@@ -33,45 +36,50 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	var g_Exposure = 0.0;
 
 	// Uniform Locations 4 Shader
-	var g_ModelMatUniformLocation = undefined;
-	var g_CameraViewMatUniformLocation = undefined;
-	var g_CameraPosVecUniformLocation = undefined;
-	var g_ProjectionMatUniformLocation = undefined;
-	var g_LightDirVecUniformLocation = undefined;
+	var g_ProjectionMatUniformLocation;
+	var g_CameraViewMatUniformLocation;
+	var g_CameraPosVecUniformLocation;
+	var g_ModelMatUniformLocation;
 
-	var g_DiffuseColorVecUniformLocation = undefined;
-	var g_SpecularIntensityUniformLocation = undefined;
-	var g_ExposureUniformLocation = undefined;
+	var g_LightDirVecUniformLocation;
+
+	var g_DiffuseColorVecUniformLocation;
+	var g_SpecularIntensityUniformLocation;
+	var g_ExposureUniformLocation;
 	
-	var g_TextureWidthUniformLocation = undefined;
-	var g_TextureHeightUniformLocation = undefined;
-	var g_SegThetaUniformLocation = undefined;
+	var g_TextureWidthUniformLocation;
+	var g_TextureHeightUniformLocation;
+	var g_SegThetaUniformLocation;
 
-	var g_BRDFMapUniformLocation = undefined;
+	var g_BRDFMapUniformLocation;
 
 	// Attribute Locations 4 Shader
-	var g_PositionAttribLocation = undefined;
-	var g_NormalAttribLocation = undefined;
-	var g_TexCoordAttribLocation = undefined;
-	var g_TangentAttribLocation = undefined;
+	var g_PositionAttribLocation;
+	var g_NormalAttribLocation;
+	var g_TexCoordAttribLocation;
+	var g_TangentAttribLocation;
 
 	// VBOs Index
 	var g_VertexBufferObject = 0;
 	var g_IndexBufferObject = 0;
+	
+	// Texture ID
+	var g_Texture0_ID;
 
 	// 函数
 	var initWebGLContext = function(canvasID) {
 		
-		var webGLContext = undefined;
+		var webGLContext;
 		
 		var canvas = document.getElementById(canvasID);
-		if (undefined != canvas) 
+		if (undefined !== canvas) 
 		{
 			webGLContext = canvas.getContext("experimental-webgl");
 			
 			webGLContext.enable(webGLContext.DEPTH_TEST);
 			webGLContext.enable(webGLContext.CULL_FACE);
-		
+			// webGLContext.enable(webGLContext.TEXTURE_2D);
+
 			webGLContext.cullFace(webGLContext.BACK);
 
 			webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -81,11 +89,28 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		return webGLContext;	
 	};
 
+	var initModel = function(fileName, callback) {
+		
+		var onGetJSONFileDone = function(data) {
+			
+			// 初始化 Model
+			var model = new glmodel.Model(g_WebGLContext);
+			model.load(data);
+
+			console.log('InitModel SUCCESS.');
+
+			callback(model);
+		};
+
+		// 载入 JSON 模型文件
+		$.getJSON(fileName, onGetJSONFileDone);	
+	};
+
 	var initShader = function(vertShaderFilename, fragShaderFilename, callback) {
 
 		// 变量用于保存 Shader 代码
-		var vertShaderSource = undefined;
-		var fragShaderSource = undefined;
+		var vertShaderSource;
+		var fragShaderSource;
 
 		// 回调函数（读取文件）
 		var onGetVertShaderSource = function(source) {
@@ -97,7 +122,7 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 			fragShaderSource = source;
 		
 			// 初始化 Shader
-			var shader = new Shader(webGLContext, vertShaderSource, fragShaderSource);
+			var shader = new Shader(g_WebGLContext, vertShaderSource, fragShaderSource);
 			
 			// 编译链接 Shader
 			var flag = shader.compileAndLink();
@@ -112,25 +137,10 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		// 开始载入 Shader 文件
 		$.get(vertShaderFilename, onGetVertShaderSource, 'text');
 	};
-
-	var initModel = function(filename, callback) {
-		
-		var onGetJSONFileDone = function(data) {
-			
-			// 初始化 Model
-			var model = new Model();
-			model.load(data);
-
-			callback(model);
-		}
-
-		// 载入 JSON 模型文件
-		$.getJSON('res/monkey.json', onGetJSONFileDone);	
-	};
 	
 	var initScene = function(gl) {
 
-		// Shader Program
+		// Shader Program ID
 		var program = g_Shader.getGLProgramID();
 
 		// Init Light Direction Slot
@@ -163,7 +173,8 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		g_TextureWidthUniformLocation = gl.getUniformLocation(program, 'fTextureWidth');
 		g_TextureHeightUniformLocation = gl.getUniformLocation(program, 'fTextureHeight');
 		g_SegThetaUniformLocation = gl.getUniformLocation(program, 'SegTheta');
-
+		
+		// Init Texture Sampler
 		g_BRDFMapUniformLocation = gl.getUniformLocation(program, 'BRDFMap');
 
 		var segTheta = 32.0;
@@ -171,8 +182,6 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		gl.uniform1f(g_TextureWidthUniformLocation, segTheta * 4.0);
 		gl.uniform1f(g_TextureHeightUniformLocation, segTheta * segTheta);
 		gl.uniform1f(g_SegThetaUniformLocation, segTheta);
-
-		gl.uniform1f(g_ExposureUniformLocation, g_Exposure);
 
 		// Init Array Slots
 		g_PositionAttribLocation = gl.getUniformLocation(program, 'vPosAttrib');
@@ -189,6 +198,32 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, g_Model.meshes[0].indices, gl.STATIC_DRAW);
 	};
+	
+	var initImage = function(gl, fileName, callback) {
+		
+		var image = new Image();
+		
+		image.onload = function() {
+			
+			var textureID = gl.createTexture();
+			
+			gl.bindTexture(gl.TEXTURE_2D, textureID);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+			
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);
+			
+			gl.bindTexture(gl.TEXTURE_2D, null);
+			
+			callback(fileName, textureID);
+		};
+
+		image.src = fileName;
+	};
 
 	// ------------------
 	//  Render the Scene
@@ -202,39 +237,44 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		// Clear the Buffer
 		g_WebGLContext.clear(g_WebGLContext.COLOR_BUFFER_BIT | g_WebGLContext.DEPTH_BUFFER_BIT);
 
-		// Light Direction Vector	
+		// Send Light Direction Vector 2 GPU	
 		var lightDirVec = vec3.create([0, 0, 1]);
 		mat4.multiplyVec3(mat4.rotateX(mat4.identity(), Math.sin(g_AnimationKey * Math.PI * 8.0) * Math.PI * 0.5), lightDirVec);
 		gl_WebGLContext.uniform3fv(g_LightDirVecUniformLocation, lightDirVec);
 
-		// Object Transform Matrix
+		// Send Object Transform Matrix 2 GPU
 		var objectTransMatrix = mat4.rotateY(mat4.identity(), g_AnimationKey * Math.PI * 2.0);
 		g_WebGLContext.uniformMatrix4fv(g_ModelMatUniformLocation, false, objectTransMatrix);
 
-		// Active the VBOs
+		// Active the Current Texture
+		g_WebGLContext.activeTexture(g_WebGLContext.TEXTURE0);
+		g_WebGLContext.bindTexture(g_WebGLContext.TEXTURE_2D, g_Texture0_ID);
+		g_WebGLContext.uniform1i(g_BRDFMapUniformLocation, 0);
+
+		// Active the VBO & IBO
 		g_WebGLContext.bindBuffer(g_WebGLContext.ARRAY_BUFFER, g_VertexBufferObject);
-	    g_WebGLContext.bindBuffer(g_WebGLContext.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject); 
+		g_WebGLContext.bindBuffer(g_WebGLContext.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject); 
     	
-		// Improve disabling unused attribute slots
+		// Disable Unused Attribute Slots
 		var count = g_WebGLContext.getParameter(g_WebGLContext.MAX_VERTEX_ATTRIBS);
 		for (var i = 0; i < count; ++i) {
 			g_WebGLContext.disableVertexAttribArray(i);
 		}
 
-		// Assign portions of the vertex buffer to attribute index used by the effect
+		// Assign Portions of the Vertex Buffer to Attribute Index
 		var attrs = g_Model.meshes[0].vertexFormat.attributes;
-		for (var i = 0; i < attrs.length; ++i) 
+		for (var j = 0; j < attrs.length; ++j) 
 		{
-			var loc = undefined;
+			var loc;
 
 			// Search vertex format declaration for a fitting vertex attribute:  
-			if (attrs[i].role === 'p') {
+			if (attrs[j].role === 'p') {
 				loc = g_PositionAttribLocation;
-			} else if (attrs[i].role === 'n') {
+			} else if (attrs[j].role === 'n') {
 				loc = g_NormalAttribLocation;
-			} else if (attrs[i].role === 't') {
+			} else if (attrs[j].role === 't') {
 				loc = g_TexCoordAttribLocation;
-			} else if (attrs[i].role === 'tg') {
+			} else if (attrs[j].role === 'tg') {
 				loc = g_TangentAttribLocation;
 			}
 
@@ -242,8 +282,7 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 			{
 				// Enable & Set Pointer of Vertex Attrib Arrays
 				g_WebGLContext.enableVertexAttribArray(loc);
-				g_WebGLContext.vertexAttribPointer(loc, attrs[i].size, g_WebGLContext.FLOAT, false, attrs[i].stride, attrs[i].offset);
-			}
+				g_WebGLContext.vertexAttribPointer(loc, attrs[j].size, g_WebGLContext.FLOAT, false, attrs[j].stride, attrs[j].offset); }
 		}
     
 		if (g_IndexBufferObject) {
@@ -251,23 +290,40 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 		} else {
 			g_WebGLContext.drawArrays(g_Model.meshes[0].primitive, 0, g_Model.meshes[0].indexCount);
 		}
-	}
+	};
+
+	// ----------
+	//  CallBack
+	// ----------
 
 	var onLoadModelFile = function(model) {
 		
-		var onLoadShader = function(result, shader) {
-				
-			g_Shader = shader;
-			
-			// 初始化场景
-			initScene(g_WebGLContext);
-		}
-
 		g_Model = model;
 
 		// 开始载入 Shader 文件
-		initShader('res/brdf.vert', 'res/brdf.frag', onLoadShader);
-	}
+		initShader('../res/shader/brdf.vert', '../res/shader/brdf.frag', onLoadShader);
+	};
+
+	var onLoadShader = function(result, shader) {
+				
+		g_Shader = shader;
+		
+		console.log('InitShader SUCCESS.');
+
+		// 初始化场景
+		initScene(g_WebGLContext);
+		console.log('InitScene SUCCESS.');
+		
+		// 初始化纹理
+		initImage(g_WebGLContext, '../res/material/alum-bronze_rgbe.png', onLoadImageFile);
+	};
+
+	var onLoadImageFile = function(fileName, textureID) {
+		
+		g_Texture0_ID = textureID;
+
+		console.log('InitImage SUCCESS.');
+	};
 
 	// -------------------------
 	//  Start the Main Function
@@ -276,6 +332,24 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	console.log($);
 
 	// 界面相关
+	$('#brdfMaterialSelector').on('change', function(data) {
+
+		var fileName = $("#brdfMaterialSelector option:selected").attr('value');		
+		
+		image = new Image();
+
+		image.onload = function() {
+			
+			gl.bindTexture(gl.TEXTURE_2D, g_Texture0_ID);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+			gl.generateMipmap(gl.TEXTURE_2D);
+			gl.bindTexture(gl.TEXTURE_2D, null);
+		};
+
+		image.src = '../res/material/' + fileName + '.png';
+    });
+
 	var brdfs = ['alum-bronze', 'alumina-oxide', 'aluminium', 'aventurnine', 
 				 'beige-fabric', 'black-fabric', 'black-obsidian', 
 				 'black-oxidized-steel', 'black-phenolic', 'black-soft-plastic', 
@@ -316,11 +390,18 @@ require(["jquery", "gl-matrix", "modernizr", "model", "shader", "timer"], functi
 	// 2. initModel ->
 	// 3. initShader ->
 	// 4. initScene (ModelView, Projection, VBOs) ->
+	// 5. initImage (Texture) ->
 
 	// 初始化 WebGL 上下文环境
 	g_WebGLContext = initWebGLContext("webGLCanvas");
 
+	if (g_WebGLContext !== undefined) {
+		console.log('InitWebGLContext SUCCESS.');
+	} else {
+		return;
+	}
+
 	// 开始载入模型
-	initModel('model/monkey.json', onLoadModelFile);
+	initModel('../res/model/monkey.json', onLoadModelFile);
 });
 

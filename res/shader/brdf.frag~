@@ -1,13 +1,9 @@
-#ifdef GL_ES
-
-precision highp float;
-
-#endif
+// -----------------
+//  Fragment Shader
+// -----------------
 
 #define RGBE_FORMAT
 #define QUADRILINEAR_INTERPOLATION
-
-#ifdef FRAGMENT_SHADER
 
 // Uniform Variables
 uniform sampler2D BRDFMap;
@@ -109,6 +105,4 @@ void main(void)
     // Farbwert Berechnen
     gl_FragColor = vec4(fExposure * dot(normal, vLightDirOutput) * (vDiffuseColor + fSpecularIntensity * refl), 1.0);
 }
-
-#endif
 

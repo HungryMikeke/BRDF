@@ -1,8 +1,6 @@
-#ifdef GL_ES
-precision highp float;
-#endif
-
-#ifdef VERTEX_SHADER
+// ---------------
+//  Vertex Shader
+// ---------------
 
 // Uniform Variables
 uniform mat4 mProjection;
@@ -53,6 +51,4 @@ void main(void)
 	
 	gl_Position = mProjection * mCameraView * mModelTrans * position;
 }
-
-#endif
 

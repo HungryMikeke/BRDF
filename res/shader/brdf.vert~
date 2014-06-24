@@ -1,8 +1,6 @@
-#ifdef GL_ES
-precision highp float;
-#endif
-
-#ifdef VERTEX_SHADER
+// ---------------
+//  Vertex Shader
+// ---------------
 
 // Uniform Variables
 uniform mat4 mProjection;
@@ -48,8 +46,8 @@ void main(void)
 	vec3 viewDir = vCameraPos - position.xyz;
 	vViewDirOutput = normalize(TangentSpace * viewDir);
 	
-	// vTexCoordOutput = vTexCoordAttrib;
-	// vDebugOutput = tangent;
+	vTexCoordOutput = vTexCoordAttrib;
+	vDebugOutput = tangent;
 	
 	gl_Position = mProjection * mCameraView * mModelTrans * position;
 }

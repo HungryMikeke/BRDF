@@ -82,9 +82,11 @@ Shader.prototype.loadAndCompileShaderSource = function(shaderType, source) {
 
 	var success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS) === true && this.gl.getError() === this.gl.NO_ERROR;
 	if (success) {
-		console.log('Successfully Compile Shader ' + fileName + ' (' + type + ').');
+		// console.log('Successfully Compile Shader ' + fileName + ' (' + shaderType + ').');
+		console.log('Successfully Compile Shader (' + shaderType + ').');
 	} else {
-		console.log('Could not Compile Shader (' + type + ') ' + fileName + ':\n' + this.gl.getShaderInfoLog(shader));
+		// console.log('Could not Compile Shader (' + shaderType + ') ' + fileName + ':\n' + this.gl.getShaderInfoLog(shader));
+		console.log('Could not Compile Shader (' + shaderType + ') :\n' + this.gl.getShaderInfoLog(shader));
 	}
 
 	return shader;
@@ -97,60 +99,14 @@ Shader.prototype.linkProgram = function() {
 	this.gl.validateProgram(this.programID);
 
 	if (this.gl.getError() === this.gl.NO_ERROR) {
-		console.log('Successfully Link Shader Program ' + fileName + '.');
+		// console.log('Successfully Link Shader Program ' + fileName + '.');
+		console.log('Successfully Link Shader Program.');
 		return true;
 	} else {
 		var infoLog = this.gl.getProgramInfoLog(program);
-		console.log('Could not Link Shader Program ' + fileName + ':\n' + infoLog);
+		// console.log('Could not Link Shader Program ' + fileName + ':\n' + infoLog);
+		console.log('Could not Link Shader Program:\n' + infoLog);
 		return false;
 	}
 };
-
-/*
-var resourceShaderLoader = function(fileName, callback) {
-	
-	var processShader = function(program, source, type) {
-		
-		var shader = gl.createShader(gl[type]);
-		gl.shaderSource(shader, "#define " + type + "\n" + source);
-		gl.compileShader(shader);
-
-		var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS) === true && gl.getError() === gl.NO_ERROR;
-		if (success) {
-			console.log('Successfully Compile Shader ' + fileName + ' (' + type + ').');
-			gl.attachShader(program, shader);
-		} else {
-			console.log('Could not Compile Shader (' + type + ') ' + fileName + ':\n' + gl.getShaderInfoLog(shader));
-		}
-		
-		return success;
-	};
-
-	var onGetShaderSource = function(source) {
-		
-		var program = gl.createProgram();
-
-		// Processing vertex and fragment shader:
-		if (processShader(program, source, 'VERTEX_SHADER') && processShader(program, source, 'FRAGMENT_SHADER')) {
-
-			// Link program
-			gl.linkProgram(program);
-			gl.validateProgram(program);
-			if (gl.getError() === gl.NO_ERROR) {
-				console.log('Successfully Link Shader Program ' + fileName + '.');
-  
-				// Shader program compilation successful:
-				var effect = new Effect(program);
-				callback(fileName, effect);
-			} else {
-				var infoLog = gl.getProgramInfoLog(program);
-				callback(fileName, null);
-				console.log('Could not Link Shader Program ' + fileName + ':\n' + infoLog);
-			}
-		}
-	};
-
-	$.get(fileName, onGetShaderSource, 'text');
-};
-*/
 
