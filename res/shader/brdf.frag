@@ -2,8 +2,10 @@
 //  Fragment Shader
 // -----------------
 
-#define RGBE_FORMAT
-#define QUADRILINEAR_INTERPOLATION
+precision highp float;
+
+// #define RGBE_FORMAT
+// #define QUADRILINEAR_INTERPOLATION
 
 // Uniform Variables
 uniform sampler2D BRDFMap;
@@ -15,17 +17,18 @@ uniform float fExposure;
 uniform float fTextureWidth;
 uniform float fTextureHeight;
 
-uniform float SegTheta;																	// Resolution of theta
-float SegPhi = SegTheta * 4.0;															// Number of segments per longitude angle
+uniform float SegTheta;																	// Resolution of Theta
 
-const float PI = 3.1415926535897932384626433832795028841971694;
-const float PI_DIV_2 = PI * 0.5;
-
-// Varying Variables (Input 4 Fragment Shader && Output 4 Vertex Shader)
+// Varying Variables (Input To Fragment Shader && Output From Vertex Shader)
 varying vec2 vTexCoordOutput;
 varying vec3 vLightDirOutput;
 varying vec3 vViewDirOutput;
 varying vec3 vDebugOutput;
+
+// Global Const Variables
+float SegPhi = SegTheta * 4.0;															// Number of Segments per Longitude Angle
+const float PI = 3.1415926535897932384626433832795028841971694;
+const float PI_DIV_2 = PI * 0.5;
 
 // ------------------
 //  Utility Function
@@ -45,21 +48,21 @@ vec3 sampleBRDF(vec2 angle_i, vec2 angle_r)
 {
     vec2 coord = vec2((mod(angle_r.x - angle_i.x + SegPhi, SegPhi) + 0.5) / fTextureWidth, 1.0 - (angle_i.y * SegTheta + angle_r.y + 0.5) / (fTextureHeight));
 
-#ifdef RGBE_FORMAT
+// #ifdef RGBE_FORMAT
     vec4 rgbe = texture2D(BRDFMap, coord);
 	float e = ((rgbe.a * 255.0) - 128.0);
     float ran = pow(2.0, e);
     return rgbe.rgb * ran;
-#else
-	return texture2D(BRDFMap, coord).xyz;
-#endif
+// #else
+//	return texture2D(BRDFMap, coord).xyz;
+// #endif
 }
 
 // ---------------
 //  Main Function
 // ---------------
 
-void main(void)
+void main()
 {
 	vec3 normal = vec3(0.0, 0.0, 1.0);
 
@@ -67,7 +70,7 @@ void main(void)
 	vec2 angle_i = toSphericalCoords(vLightDirOutput);
 	vec2 angle_r = toSphericalCoords(vViewDirOutput);
     
-#ifdef QUADRILINEAR_INTERPOLATION
+// #ifdef QUADRILINEAR_INTERPOLATION
 	// Quad-Linear Interpolation
     vec2 angle_i_min = floor(angle_i);
     vec2 weights_i = angle_i - angle_i_min;	
@@ -97,12 +100,11 @@ void main(void)
 	vec3 refl3 = mix(mix(s12, s13, weights_i.x), mix(s14, s15, weights_i.x), weights_i.y);
 
 	vec3 refl = mix(mix(refl0, refl1, weights_r.x), mix(refl2, refl3, weights_r.x), weights_r.y);
-#else
+// #else
     // Nearest Neighbor Sampling
-    vec3 refl = sampleBRDF(floor(angle_i + 0.5), floor(angle_r + 0.5));
-#endif
+//   vec3 refl = sampleBRDF(floor(angle_i + 0.5), floor(angle_r + 0.5));
+// #endif
 
     // Farbwert Berechnen
     gl_FragColor = vec4(fExposure * dot(normal, vLightDirOutput) * (vDiffuseColor + fSpecularIntensity * refl), 1.0);
 }
-

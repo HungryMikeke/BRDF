@@ -77,7 +77,8 @@ Shader.prototype.loadAndCompileShaderSource = function(shaderType, source) {
 	var shader = this.gl.createShader(this.gl[shaderType]);
 	
 	// Specify the source for the shader && Compile the shader
-	this.gl.shaderSource(shader, "#define " + shaderType, "\n" + source);
+	// this.gl.shaderSource(shader, "#define " + shaderType, "\n" + source);
+	this.gl.shaderSource(shader, source);
 	this.gl.compileShader(shader);
 
 	var success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS) === true && this.gl.getError() === this.gl.NO_ERROR;
