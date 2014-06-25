@@ -2,8 +2,8 @@
 //  Fragment Shader
 // -----------------
 
-#define RGBE_FORMAT
-#define QUADRILINEAR_INTERPOLATION
+// #define RGBE_FORMAT
+// #define QUADRILINEAR_INTERPOLATION
 
 // Uniform Variables
 uniform sampler2D BRDFMap;
@@ -45,14 +45,14 @@ vec3 sampleBRDF(vec2 angle_i, vec2 angle_r)
 {
     vec2 coord = vec2((mod(angle_r.x - angle_i.x + SegPhi, SegPhi) + 0.5) / fTextureWidth, 1.0 - (angle_i.y * SegTheta + angle_r.y + 0.5) / (fTextureHeight));
 
-#ifdef RGBE_FORMAT
+// #ifdef RGBE_FORMAT
     vec4 rgbe = texture2D(BRDFMap, coord);
 	float e = ((rgbe.a * 255.0) - 128.0);
     float ran = pow(2.0, e);
-    return rgbe.rgb * ran;
-#else
-	return texture2D(BRDFMap, coord).xyz;
-#endif
+	return rgbe.rgb * ran;
+// #else
+	// return texture2D(BRDFMap, coord).xyz;
+// #endif
 }
 
 // ---------------
@@ -67,7 +67,7 @@ void main(void)
 	vec2 angle_i = toSphericalCoords(vLightDirOutput);
 	vec2 angle_r = toSphericalCoords(vViewDirOutput);
     
-#ifdef QUADRILINEAR_INTERPOLATION
+// #ifdef QUADRILINEAR_INTERPOLATION
 	// Quad-Linear Interpolation
     vec2 angle_i_min = floor(angle_i);
     vec2 weights_i = angle_i - angle_i_min;	
@@ -97,10 +97,10 @@ void main(void)
 	vec3 refl3 = mix(mix(s12, s13, weights_i.x), mix(s14, s15, weights_i.x), weights_i.y);
 
 	vec3 refl = mix(mix(refl0, refl1, weights_r.x), mix(refl2, refl3, weights_r.x), weights_r.y);
-#else
+// #else
     // Nearest Neighbor Sampling
-    vec3 refl = sampleBRDF(floor(angle_i + 0.5), floor(angle_r + 0.5));
-#endif
+    // vec3 refl = sampleBRDF(floor(angle_i + 0.5), floor(angle_r + 0.5));
+// #endif
 
     // Farbwert Berechnen
     gl_FragColor = vec4(fExposure * dot(normal, vLightDirOutput) * (vDiffuseColor + fSpecularIntensity * refl), 1.0);
