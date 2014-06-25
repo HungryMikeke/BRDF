@@ -77,16 +77,16 @@ Shader.prototype.loadAndCompileShaderSource = function(shaderType, source) {
 	var shader = this.gl.createShader(this.gl[shaderType]);
 	
 	// Specify the source for the shader && Compile the shader
-	this.gl.shaderSource(shader, "#define " + shaderType, "\n" + source);
+	this.gl.shaderSource(shader, source);
 	this.gl.compileShader(shader);
 
 	var success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS) === true && this.gl.getError() === this.gl.NO_ERROR;
 	if (success) {
 		// console.log('Successfully Compile Shader ' + fileName + ' (' + shaderType + ').');
-		console.log('Successfully Compile Shader (' + shaderType + ').');
+		console.log('Successfully Compile the Shader (' + shaderType + ').');
 	} else {
 		// console.log('Could not Compile Shader (' + shaderType + ') ' + fileName + ':\n' + this.gl.getShaderInfoLog(shader));
-		console.log('Could not Compile Shader (' + shaderType + ') :\n' + this.gl.getShaderInfoLog(shader));
+		console.log('Could not Compile the Shader (' + shaderType + ') :\n' + this.gl.getShaderInfoLog(shader));
 	}
 
 	return shader;
@@ -100,12 +100,12 @@ Shader.prototype.linkProgram = function() {
 
 	if (this.gl.getError() === this.gl.NO_ERROR) {
 		// console.log('Successfully Link Shader Program ' + fileName + '.');
-		console.log('Successfully Link Shader Program.');
+		console.log('Successfully Link the Shader Program.');
 		return true;
 	} else {
 		var infoLog = this.gl.getProgramInfoLog(program);
 		// console.log('Could not Link Shader Program ' + fileName + ':\n' + infoLog);
-		console.log('Could not Link Shader Program:\n' + infoLog);
+		console.log('Could not Link the Shader Program:\n' + infoLog);
 		return false;
 	}
 };

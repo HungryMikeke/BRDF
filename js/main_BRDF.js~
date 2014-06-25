@@ -19,21 +19,23 @@ require.config({
 	}
 });
  
-require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix, glmodel)
+require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], function($, glmatrix, glmodel)
 {
 	var mat4 = glmatrix.mat4;
 	var vec3 = glmatrix.vec3;
 
 	// 全局变量
-	var g_WebGLContext;
-	var g_Shader;
-	var g_Model;
+	var g_WebGLContext;									// WebGL 上下文环境
+	var g_Shader;										// 着色器对象
+	var g_Model;										// 模型对象
 	
+	var g_Timer;										// 计时器
+
 	// 全局参数
 	var g_CanvasAspectRatio = 1.0;
 	var g_AnimationKey = 0.0;
 
-	var g_Exposure = 0.0;
+	var g_Exposure = 1.0;
 
 	// Uniform Locations 4 Shader
 	var g_ProjectionMatUniformLocation;
@@ -66,7 +68,53 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 	// Texture ID
 	var g_Texture0_ID;
 
-	// 函数
+	/**
+	 * Adjusts the width and height of the viewport to the
+	 * dimensions of the current WebGL canvas.
+	 */
+	var reshapeViewport = function(gl, canvas) {
+		
+		if (!gl) {
+			return;
+		}
+
+		if (canvas.oldwidth == canvas.width && canvas.oldheight == canvas.height) {
+			return;
+		}
+		
+		canvas.width = canvas.clientWidth;
+		canvas.height = canvas.clientHeight;
+		canvas.oldwidth = canvas.clientWidth;
+		canvas.oldheight = canvas.clientHeight;
+		
+		g_CanvasAspectRatio = canvas.width / canvas.height;
+
+		// Set the Viewport
+		gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
+	};
+
+	/**
+	 * Schedules a new animation frame. 
+	 * The specified callback function is called as soon as the
+	 * next frame is due.
+	 * @param {function} callback
+	 */
+	var requestAnimFrame = (function() {
+		
+		return	window.requestAnimationFrame || 
+				window.webkitRequestAnimationFrame ||
+				window.mozRequestAnimationFrame ||
+				window.oRequestAnimationFrame ||
+				window.msRequestAnimationFrame ||
+				function(callback, element) {
+					 window.setTimeout(callback, 1000.0 / 60.0);
+				};
+	})();
+
+	// ------------
+	//  初始化函数
+	// ------------
+
 	var initWebGLContext = function(canvasID) {
 		
 		var webGLContext;
@@ -122,7 +170,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 			fragShaderSource = source;
 		
 			// 初始化 Shader
-			var shader = new Shader(webGLContext, vertShaderSource, fragShaderSource);
+			var shader = new Shader(g_WebGLContext, vertShaderSource, fragShaderSource);
 			
 			// 编译链接 Shader
 			var flag = shader.compileAndLink();
@@ -142,6 +190,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 
 		// Shader Program ID
 		var program = g_Shader.getGLProgramID();
+		gl.useProgram(program);
 
 		// Init Light Direction Slot
 		g_LightDirVecUniformLocation = gl.getUniformLocation(program, 'vLightDir');
@@ -184,12 +233,12 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 		gl.uniform1f(g_SegThetaUniformLocation, segTheta);
 
 		// Init Array Slots
-		g_PositionAttribLocation = gl.getUniformLocation(program, 'vPosAttrib');
-		g_NormalAttribLocation = gl.getUniformLocation(program, 'vNormalAttrib');
-		g_TexCoordAttribLocation = gl.getUniformLocation(program, 'vTexCoordAttrib');
-		g_TangentAttribLocation = gl.getUniformLocation(program, 'vTangentAttrib');
+		g_PositionAttribLocation = gl.getAttribLocation(program, 'vPosAttrib');
+		g_NormalAttribLocation = gl.getAttribLocation(program, 'vNormalAttrib');
+		g_TexCoordAttribLocation = gl.getAttribLocation(program, 'vTexCoordAttrib');
+		g_TangentAttribLocation = gl.getAttribLocation(program, 'vTangentAttrib');
 
-		// Init Model
+		// Init VBO & IBO
 		g_VertexBufferObject = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, g_VertexBufferObject);
 		gl.bufferData(gl.ARRAY_BUFFER, g_Model.meshes[0].vertices, gl.STATIC_DRAW);
@@ -240,7 +289,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 		// Send Light Direction Vector 2 GPU	
 		var lightDirVec = vec3.create([0, 0, 1]);
 		mat4.multiplyVec3(mat4.rotateX(mat4.identity(), Math.sin(g_AnimationKey * Math.PI * 8.0) * Math.PI * 0.5), lightDirVec);
-		gl_WebGLContext.uniform3fv(g_LightDirVecUniformLocation, lightDirVec);
+		g_WebGLContext.uniform3fv(g_LightDirVecUniformLocation, lightDirVec);
 
 		// Send Object Transform Matrix 2 GPU
 		var objectTransMatrix = mat4.rotateY(mat4.identity(), g_AnimationKey * Math.PI * 2.0);
@@ -278,11 +327,12 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 				loc = g_TangentAttribLocation;
 			}
 
-			if (loc) 
+			if (loc >= 0) 
 			{
 				// Enable & Set Pointer of Vertex Attrib Arrays
 				g_WebGLContext.enableVertexAttribArray(loc);
-				g_WebGLContext.vertexAttribPointer(loc, attrs[j].size, g_WebGLContext.FLOAT, false, attrs[j].stride, attrs[j].offset); }
+				g_WebGLContext.vertexAttribPointer(loc, attrs[j].size, g_WebGLContext.FLOAT, false, attrs[j].stride, attrs[j].offset); 
+			}
 		}
     
 		if (g_IndexBufferObject) {
@@ -316,6 +366,28 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 		
 		// 初始化纹理
 		initImage(g_WebGLContext, '../res/material/alum-bronze_rgbe.png', onLoadImageFile);
+	
+		// 渲染	
+		var loopFunc = function() {
+			
+			var canvas = document.getElementById("webGLCanvas");	
+			reshapeViewport(g_WebGLContext, canvas);
+		
+			g_AnimationKey = (g_Timer.time % 12.0 / 12.0);
+
+			draw();
+	
+			g_Timer.nextFrame();
+
+			requestAnimFrame(loopFunc);
+		};
+	
+		// 开启渲染循环
+		requestAnimFrame(loopFunc);
+		
+		// 开启计时器
+		g_Timer = new Timer();
+		g_Timer.start();
 	};
 
 	var onLoadImageFile = function(fileName, textureID) {
@@ -337,7 +409,6 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 		var fileName = $("#brdfMaterialSelector option:selected").attr('value');		
 		
 		image = new Image();
-
 		image.onload = function() {
 			
 			gl.bindTexture(gl.TEXTURE_2D, g_Texture0_ID);
@@ -346,7 +417,6 @@ require(["jquery", "glmatrix", "model", "shader", "timer"], function($, glmatrix
 			gl.generateMipmap(gl.TEXTURE_2D);
 			gl.bindTexture(gl.TEXTURE_2D, null);
 		};
-
 		image.src = '../res/material/' + fileName + '.png';
     });
 

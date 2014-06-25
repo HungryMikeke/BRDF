@@ -2,6 +2,8 @@
 //  Vertex Shader
 // ---------------
 
+precision highp float;
+
 // Uniform Variables
 uniform mat4 mProjection;
 uniform mat4 mCameraView;
@@ -12,11 +14,11 @@ uniform vec3 vLightDir;
 
 // Attribute Variables (Input)
 attribute vec3 vPosAttrib;
-attribute vec2 vNormalAttrib;
-attribute vec3 vTexCoordAttrib;
+attribute vec3 vNormalAttrib;
+attribute vec2 vTexCoordAttrib;
 attribute vec3 vTangentAttrib;
 
-// Varying Variables (Output)
+// Varying Variables (Output 4 Fragment Shader)
 varying vec2 vTexCoordOutput;
 varying vec3 vLightDirOutput;
 varying vec3 vViewDirOutput;
@@ -51,4 +53,3 @@ void main(void)
 	
 	gl_Position = mProjection * mCameraView * mModelTrans * position;
 }
-
