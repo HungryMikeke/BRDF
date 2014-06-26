@@ -57,7 +57,7 @@ a, a:visited, a:hover, a:focus { color: #D0D0D0; }
 	display: inline-block;
 }
 
-div.exposureSlider, #sideBar select {
+div.exposureSlider, #exposureSlider select {
 	width: 150px;
 	height: 25px;
 	background: #808080;

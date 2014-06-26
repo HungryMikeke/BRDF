@@ -18,7 +18,7 @@ require.config({
 		timer:		'Timer',
 	}
 });
- 
+
 require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], function($, glmatrix, glmodel)
 {
 	var mat4 = glmatrix.mat4;
@@ -35,7 +35,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	var g_CanvasAspectRatio = 1.0;
 	var g_AnimationKey = 0.0;
 
-	var g_Exposure = 1.0;
+	var g_Exposure = 10.0;
 
 	// Uniform Locations 4 Shader
 	var g_ProjectionMatUniformLocation;
@@ -65,6 +65,8 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	var g_VertexBufferObject = 0;
 	var g_IndexBufferObject = 0;
 	
+	var g_TriangleBufferObject = 0;
+
 	// Texture ID
 	var g_Texture0_ID;
 
@@ -77,7 +79,8 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		if (!gl) {
 			return;
 		}
-
+		
+		/*
 		if (canvas.oldwidth == canvas.width && canvas.oldheight == canvas.height) {
 			return;
 		}
@@ -86,11 +89,14 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		canvas.height = canvas.clientHeight;
 		canvas.oldwidth = canvas.clientWidth;
 		canvas.oldheight = canvas.clientHeight;
-		
-		g_CanvasAspectRatio = canvas.width / canvas.height;
+		*/
+
+		gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
 
 		// Set the Viewport
-		gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
+		// gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
+		// gl.viewport(0, 0, canvas.width, canvas.height);
 	};
 
 	/**
@@ -126,12 +132,10 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 			
 			webGLContext.enable(webGLContext.DEPTH_TEST);
 			webGLContext.enable(webGLContext.CULL_FACE);
-			// webGLContext.enable(webGLContext.TEXTURE_2D);
-
 			webGLContext.cullFace(webGLContext.BACK);
 
-			webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
-			webGLContext.clearDepth(0.0);
+			webGLContext.clearColor(0.0, 0.0, 0.0, 0.0);
+			webGLContext.clearDepth(1.0);
 		}
 
 		return webGLContext;	
@@ -200,14 +204,16 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		g_CameraViewMatUniformLocation = gl.getUniformLocation(program, 'mCameraView');
 		g_CameraPosVecUniformLocation = gl.getUniformLocation(program, 'vCameraPos');
 		g_ModelMatUniformLocation = gl.getUniformLocation(program, 'mModelTrans');
+		
+		g_CanvasAspectRatio = gl.viewportWidth / gl.viewportHeight;
 
 		var projectionMatrix = mat4.perspective(45.0, g_CanvasAspectRatio, 0.1, 100.0);
-		var cameraViewMatrix = mat4.lookAt([0, 0, 2.8], [0, 0, 0], [0, 1, 0]);
-		var cameraPosVec = vec3.create([0, 0, 2.8]);
+		var cameraViewMatrix = mat4.lookAt([0.0, 0.0, 2.8], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+		var cameraPosVec = vec3.create([0.0, 0.0, 2.8]);
 
 		gl.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
 		gl.uniformMatrix4fv(g_CameraViewMatUniformLocation, false, cameraViewMatrix);
-		gl.uniform3fv(g_CameraPosVecUniformLocation, cameraPosVec);	
+		gl.uniform3fv(g_CameraPosVecUniformLocation, cameraPosVec);
 		
 		// Init Light Argument Slots
 		g_DiffuseColorVecUniformLocation = gl.getUniformLocation(program, 'vDiffuseColor');
@@ -246,6 +252,18 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		g_IndexBufferObject = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g_IndexBufferObject);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, g_Model.meshes[0].indices, gl.STATIC_DRAW);
+
+		/*
+		g_TriangleBufferObject = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, g_TriangleBufferObject);
+
+		var vertices = [
+             0.0,  1.0,  0.0,
+            -1.0, -1.0,  0.0,
+             1.0, -1.0,  0.0
+        ];
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+		*/
 	};
 	
 	var initImage = function(gl, fileName, callback) {
@@ -258,13 +276,21 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 			
 			gl.bindTexture(gl.TEXTURE_2D, textureID);
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			
+			/*
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-			
+			*/
+
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);       
+
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-			gl.generateMipmap(gl.TEXTURE_2D);
+			// gl.generateMipmap(gl.TEXTURE_2D);
 			
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			
@@ -279,12 +305,24 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	// ------------------
 
 	var draw = function() {
-		
+	
+		console.log('Draw');
+			
 		// Use Program
 		g_WebGLContext.useProgram(g_Shader.getGLProgramID());
 		
 		// Clear the Buffer
 		g_WebGLContext.clear(g_WebGLContext.COLOR_BUFFER_BIT | g_WebGLContext.DEPTH_BUFFER_BIT);
+		
+		// Set the Viewport
+		g_WebGLContext.viewport(0, 0, g_WebGLContext.viewportWidth, g_WebGLContext.viewportHeight);
+
+		// Projection Matrix
+		g_CanvasAspectRatio = g_WebGLContext.viewportWidth / g_WebGLContext.viewportHeight;
+		console.log("<g_CanvasAspectRatio, glViewportWidth, glViewportHeight> = <%f, %f, %f>", g_CanvasAspectRatio, g_WebGLContext.viewportWidth, g_WebGLContext.viewportHeight);
+
+		var projectionMatrix = mat4.perspective(45.0, g_CanvasAspectRatio, 0.1, 100.0);
+		g_WebGLContext.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
 
 		// Send Light Direction Vector 2 GPU	
 		var lightDirVec = vec3.create([0, 0, 1]);
@@ -309,6 +347,16 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		for (var i = 0; i < count; ++i) {
 			g_WebGLContext.disableVertexAttribArray(i);
 		}
+	
+		// Triangle For Debugging
+		/*
+		g_WebGLContext.bindBuffer(g_WebGLContext.ARRAY_BUFFER, g_TriangleBufferObject);
+
+		g_WebGLContext.enableVertexAttribArray(0);
+		g_WebGLContext.vertexAttribPointer(0, 3, g_WebGLContext.FLOAT, false, 0, 0); 
+
+		g_WebGLContext.drawArrays(g_WebGLContext.TRIANGLES, 0, 3);
+		*/
 
 		// Assign Portions of the Vertex Buffer to Attribute Index
 		var attrs = g_Model.meshes[0].vertexFormat.attributes;
@@ -334,7 +382,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 				g_WebGLContext.vertexAttribPointer(loc, attrs[j].size, g_WebGLContext.FLOAT, false, attrs[j].stride, attrs[j].offset); 
 			}
 		}
-    
+
 		if (g_IndexBufferObject) {
 			g_WebGLContext.drawElements(g_Model.meshes[0].primitive, g_Model.meshes[0].indexCount, g_WebGLContext.UNSIGNED_SHORT, 0);
 		} else {
@@ -370,8 +418,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		// 渲染	
 		var loopFunc = function() {
 			
-			var canvas = document.getElementById("webGLCanvas");	
-			reshapeViewport(g_WebGLContext, canvas);
+			reshapeViewport(g_WebGLContext, document.getElementById("webGLCanvas"));
 		
 			g_AnimationKey = (g_Timer.time % 12.0 / 12.0);
 

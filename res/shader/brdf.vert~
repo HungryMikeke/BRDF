@@ -34,22 +34,24 @@ void main(void)
 	vec4 position = vec4(vPosAttrib, 1.0);
 	
 	// Normal & Tangent in World Coordinates
-	vec3 normal = normalize(vNormalAttrib);
-	vec3 tangent = normalize(vTangentAttrib);
-	// vec3 tangent = normalize(vec4(cross(vNormalAttrib, vec3(0.0, 1.0, 0.0)), 0.0)).xyz);
+	vec3 normal = normalize((mModelTrans * vec4(vNormalAttrib, 0.0)).xyz);
+	// vec3 tangent = normalize((mModelTrans * vec4(vTangentAttrib, 0.0)).xyz);
+	vec3 tangent = normalize((mModelTrans * vec4(cross(vNormalAttrib, vec3(0.0, 1.0, 0.0)), 0.0)).xyz);
 
 	// Transform from World to Tangent Space
 	// mat3 TangentSpace = mat3(tangent, normalize(cross(vNormalAttrib, vTangentAttrib)), vNormalAttrib);
-	mat3 TangentSpace = mat3(tangent, normalize(cross(vNormalAttrib, vTangentAttrib)), normal);
+	// mat3 TangentSpace = mat3(tangent, normalize(cross(vNormalAttrib, vTangentAttrib)), normal);
+	mat3 TangentSpace = mat3(tangent, normalize(cross(normal, tangent)), normal);
 	
 	// Light Direction in Tangent Space
 	vLightDirOutput = normalize(TangentSpace * vLightDir);
 	
-	vec3 viewDir = vCameraPos - position.xyz;
+	vec3 viewDir = vCameraPos - (mModelTrans * position).xyz;
 	vViewDirOutput = normalize(TangentSpace * viewDir);
 	
 	vTexCoordOutput = vTexCoordAttrib;
 	vDebugOutput = tangent;
 	
+	// gl_Position = mProjection * mCameraView * vec4(vNormalAttrib, 1.0);
 	gl_Position = mProjection * mCameraView * mModelTrans * position;
 }

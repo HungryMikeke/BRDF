@@ -65,6 +65,9 @@ vec3 sampleBRDF(vec2 angle_i, vec2 angle_r)
 
 void main()
 {
+	// gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+	// return;
+
 	vec3 normal = vec3(0.0, 0.0, 1.0);
 
 	// Convert Light Vector to Spherical Coordinates
@@ -107,5 +110,6 @@ void main()
 // #endif
 
     // Farbwert Berechnen
-    gl_FragColor = vec4(fExposure * dot(normal, vLightDirOutput) * (vDiffuseColor + fSpecularIntensity * refl), 1.0);
+	gl_FragColor = vec4(fExposure * dot(normal, vLightDirOutput) * (vDiffuseColor + fSpecularIntensity * refl), 1.0);
 }
+
