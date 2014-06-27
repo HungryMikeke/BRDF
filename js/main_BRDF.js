@@ -67,7 +67,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	
 	var g_TriangleBufferObject = 0;
 
-	// Texture ID
+	// Texture Object ID
 	var g_Texture0_ID;
 
 	/**
@@ -324,7 +324,7 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		var projectionMatrix = mat4.perspective(45.0, g_CanvasAspectRatio, 0.1, 100.0);
 		g_WebGLContext.uniformMatrix4fv(g_ProjectionMatUniformLocation, false, projectionMatrix);
 
-		// Send Light Direction Vector 2 GPU	
+		// Send Light Direction Vector 2 GPU
 		var lightDirVec = vec3.create([0, 0, 1]);
 		mat4.multiplyVec3(mat4.rotateX(mat4.identity(), Math.sin(g_AnimationKey * Math.PI * 8.0) * Math.PI * 0.5), lightDirVec);
 		g_WebGLContext.uniform3fv(g_LightDirVecUniformLocation, lightDirVec);
@@ -417,24 +417,25 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	
 		// 渲染	
 		var loopFunc = function() {
-			
-			reshapeViewport(g_WebGLContext, document.getElementById("webGLCanvas"));
 		
+			$('#frameRateStats').html(g_Timer.fps + ' FPS');
+
 			g_AnimationKey = (g_Timer.time % 12.0 / 12.0);
 
+			reshapeViewport(g_WebGLContext, document.getElementById("webGLCanvas"));
 			draw();
 	
 			g_Timer.nextFrame();
 
 			requestAnimFrame(loopFunc);
 		};
-	
-		// 开启渲染循环
-		requestAnimFrame(loopFunc);
 		
 		// 开启计时器
 		g_Timer = new Timer();
 		g_Timer.start();
+			
+		// 开启渲染循环
+		requestAnimFrame(loopFunc);
 	};
 
 	var onLoadImageFile = function(fileName, textureID) {
@@ -457,7 +458,9 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		
 		image = new Image();
 		image.onload = function() {
-			
+		
+			var gl = g_WebGLContext;
+
 			gl.bindTexture(gl.TEXTURE_2D, g_Texture0_ID);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 

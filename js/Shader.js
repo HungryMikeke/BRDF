@@ -42,7 +42,7 @@ Shader.prototype.compileAndLink = function() {
 	this.gl.attachShader(this.programID, this.vertShaderID);
 	this.gl.attachShader(this.programID, this.fragShaderID);
 
-	// Link the program
+	// Link the Program
 	if (this.linkProgram() === false) {
 		console.log('Could not Compile and Link the Shader Program.');
 		this.cleanUp();
@@ -76,7 +76,7 @@ Shader.prototype.loadAndCompileShaderSource = function(shaderType, source) {
 	// Create a Shader
 	var shader = this.gl.createShader(this.gl[shaderType]);
 	
-	// Specify the source for the shader && Compile the shader
+	// Specify the Source for the Shader && Compile the Shader
 	this.gl.shaderSource(shader, source);
 	this.gl.compileShader(shader);
 

@@ -555,13 +555,11 @@ Model.prototype.load = function(data)
     });
 };
 
-	/*
 	return {
 		VertexFormat:	VertexFormat,
 		Mesh:			Mesh,
 		Model:			Model,    
 	};
-	*/
 
 });
 
