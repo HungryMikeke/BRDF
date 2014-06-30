@@ -332,6 +332,9 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		// Send Object Transform Matrix 2 GPU
 		var objectTransMatrix = mat4.rotateY(mat4.identity(), g_AnimationKey * Math.PI * 2.0);
 		g_WebGLContext.uniformMatrix4fv(g_ModelMatUniformLocation, false, objectTransMatrix);
+		
+		// Send Light Exposure 2 GPU
+		g_WebGLContext.uniform1f(g_ExposureUniformLocation, g_Exposure);
 
 		// Active the Current Texture
 		g_WebGLContext.activeTexture(g_WebGLContext.TEXTURE0);
@@ -452,6 +455,42 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	console.log($);
 
 	// 界面相关
+	
+	var setSlideValue = function (element, position) {
+		
+		var width = element.outerWidth();
+		var x = position * width;
+		
+		element.css('border-left', x + 'px solid');
+		element.css('width', (width - x) + 'px');
+		
+		var position = x * 1.0 / width; 
+		element.trigger('exposureSlide', [position]);
+    };
+    
+    $('.exposureSlider').on('mousemove mousedown mouseup click', function(e) {
+		
+		var element =  $(e.delegateTarget);
+		
+		if (e.type == 'mouseup') {
+			element[0].which = null;
+			return;
+		} else if (e.type == 'mousedown') {
+			element[0].which = e.which;
+		}
+		
+		if (element[0].which == 1) {
+			var x = e.clientX - element.offset().left + 1;
+			var width = element.outerWidth();
+			setSlideValue(element, x / width);
+		}
+	});
+    
+    $('#exposureSlider').bind('exposureSlide', function(e, p) {
+		g_Exposure = Math.pow(10.0, p * 6.0 - 2.0);
+		$('#exposureText').html(g_Exposure.toPrecision(5));
+	});
+
 	$('#brdfMaterialSelector').on('change', function(data) {
 
 		var fileName = $("#brdfMaterialSelector option:selected").attr('value');		
@@ -469,7 +508,8 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 		};
 		image.src = '../res/material/' + fileName + '.png';
     });
-
+	
+	// Init the Selector
 	var brdfs = ['alum-bronze', 'alumina-oxide', 'aluminium', 'aventurnine', 
 				 'beige-fabric', 'black-fabric', 'black-obsidian', 
 				 'black-oxidized-steel', 'black-phenolic', 'black-soft-plastic', 
@@ -504,6 +544,9 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	$.each(brdfs, function(key, value) {
 		$('#brdfMaterialSelector').append('<option value="' + value + '_rgbe">' + value + '</option>');
     });
+	
+	// Init the Exposure Slider
+	setSlideValue($('#exposureSlider'), 0.5);
 
 	// 初始化流程：
 	// 1. initWebGLContext ->
