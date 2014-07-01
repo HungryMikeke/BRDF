@@ -4,8 +4,9 @@
 
 define(['jquery', 'glmatrix'], function($, glmatrix) 
 {
-	var mat4 = glmatrix.mat4;
-	var vec3 = glmatrix.vec3;
+
+var mat4 = glmatrix.mat4;
+var vec3 = glmatrix.vec3;
 
 /**
  * Defines the semantic role of a vertex attribute
@@ -43,24 +44,6 @@ var AttributeRole = {
 	 */    
 	'BiTangent' : 'b'
 };
-  
-/**
- * Attempts to find the semantic role of a vertex attribute based
- * on its name.
- * @param {object} info Info record returned by WebGL
- * @returns {AttributeRole} Guessed attribute role
- */
-
-/*
-var guessAttributeRole = function(info) {
-	var format = /A(.+)/;
-	var m = info.name.match(format);
-	var name = (m === null) ? info.name : m[1];
-	var role = AttributeRole[name] || AttributeRole.Unknown;
-	console.log(info.name + ' is a ' + role + '.');
-	return role;
-};
-*/
 
 /**
  * @constructor
@@ -142,7 +125,6 @@ var VertexFormat = function(vertices, format) {
 			m = blockFormat.match(pattern);
 			if (m === null) {
 				throw new VertexFormatError('Vertex format string is invalid at position ' + format.length - expr.length);
-				// return;
 			}
 
 			blockFormat = m[3];
@@ -162,7 +144,7 @@ var VertexFormat = function(vertices, format) {
 		return { attrs: attrs, size: blockSize };
 	};
     
-    // Read Blocks:
+    // Read Blocks
     var blockFormats = format.split('|');
     var blocks = [];
     for (var i = 0; i < blockFormats.length; i++) {
@@ -175,11 +157,11 @@ var VertexFormat = function(vertices, format) {
 		throw new VertexDataError('Length of vertices array does not match vertex format');
     }
     
-    // Create attributes and calculate stride and offset:
+    // Create Attributes && Calculate Stride and Offset
     var vertexCount = vertices.length / this.size;
     var blockOffset = 0;
     var self = this;
-    
+	
 	$.each(blocks, function() {
 		
 		var block = this;
@@ -299,31 +281,6 @@ var Mesh = function(gl, vertices, indices, format, primitive, calculateTangents)
     }
 
 	this.indices = indices;
-
-    /**
-     * Vertex buffer
-     * @type {WebGLBuffer}
-     */
-
-    /*
-	this.vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-	*/
-
-    /**
-     * Index buffer
-     * @type {WebGLBuffer}
-     */
-    
-	/*
-	this.ibo = null;
-    if (indices) {
-		this.ibo = gl.createBuffer();
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    }
-	*/
 };
   
 Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
@@ -331,7 +288,7 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 	var posAttr = this.vertexFormat.find(AttributeRole.Position);
     var texAttr = this.vertexFormat.find(AttributeRole.TexCoord);
     
-	// Triangles with XYZ position and XY texture coordinates needed: 
+	// Triangles with XYZ position and XY Texture Coordinates Needed 
     if (this.primitive !== this.gl.TRIANGLES || 
 		posAttr === null || posAttr.size !== 3 ||
         texAttr === null || texAttr.size !== 2) 
@@ -364,13 +321,13 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 			for (var c = 0; c < 3; ++c) {
 				pos[j * 3 + c] = vertices[vi * pStride + pOffset + c];
 			}
-			// Fetch Texture Coordinates X & Y:
+			// Fetch Texture Coordinates X & Y
 			for (var d = 0; d < 2; ++d) {
 				tex[j * 2 + d] = vertices[vi * tStride + tOffset + d];
 			}
 		}
 
-		// Calculate difference vectors:
+		// Calculate Difference Vectors
 		for (var i = 0; i < 3; ++i) {
 			q1[i] = pos[i + 3] - pos[i];
 			q2[i] = pos[i + 6] - pos[i];
@@ -390,7 +347,7 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
     var triIndices = new Uint16Array(3);
     while (index < indexCount) 
 	{
-		// Set vertex indices of triangle:
+		// Set Vertex Indices of Triangle
 		if (!indices) {
 			for (var i = 0; i < 3; ++i) {
 				triIndices[i] = index + i;
@@ -402,17 +359,17 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 			}
 		}
       
-		// Set Position and Texture Coordinate difference vectors:
+		// Set Position and Texture Coordinate difference vectors
 		setQU(triIndices);
       
-		// Calculate tangent of triangle:
+		// Calculate Tangent of Triangle
 		var frac = 1.0 / (u1[0] * u2[1] - u2[0] * u1[1]);
 		for (var i = 0; i < 3; ++i) {
 			t[i] = ((u1[0] * q1[i] + u1[1] * q2[i]) * frac);
 		}
 		vec3.normalize(t);
       
-		// Accumulate triangle tangent to vertex tangents:
+		// Accumulate Triangle Tangent to Vertex Tangents
 		for (var j = 0; j < 3; ++j) {
 			var vi = triIndices[j] * 3;
 			tangents.set(t, vi);
@@ -421,12 +378,12 @@ Mesh.prototype.calculateTangents = function(mesh, vertices, indices) {
 		index += 3;
     }
 
-    // Normalize Vertex Tangents:
+    // Normalize Vertex Tangents
     for (var i = 0; i < mesh.vertexCount; i++) {
 		vec3.normalize(tangents.subarray(i * 3, i * 3 + 3));
     }
 
-    // Append Tangents to Vertices:
+    // Append Tangents to Vertices
     var newVertices = new Float32Array(vertices.length + tangents.length);
     newVertices.set(vertices);
     newVertices.set(tangents, vertices.length);
@@ -457,8 +414,7 @@ var Model = function(gl) {
  */
 Model.prototype.load = function(data)
 {
-	// Resolves one to many mapping between vertex index and texture coordinates 
-	// By adding new vertices
+	// Resolves one to many mapping between vertex index and texture coordinates by adding new vertices
 	var resolveTexCoords = function(indices, positions, normals, texCoords) {
 	  	
 		var eps = 1e-5;
@@ -515,7 +471,7 @@ Model.prototype.load = function(data)
       	var hasNormals = meshData.n !== undefined;
       	var hasTexCoords = (meshData.uv !== undefined) && (meshData.uv.length > 0);
 
-		// Calculate vertex format
+		// Calculate Vertex Format
       	var size = 3 + (hasNormals ? 3 : 0) + (hasTexCoords ? 2 : 0);
 		var format = AttributeRole.Position + '3' + 
 					(hasNormals ? '|' + AttributeRole.Normal + '3' : '') +
@@ -549,17 +505,17 @@ Model.prototype.load = function(data)
         	offset += vertexCount * 2;
       	}
 
-		// Create a Mesh object
+		// Create a Mesh Object
       	var mesh = new Mesh(self.gl, vertices, indices, format, self.gl.TRIANGLES, true);
      	self.meshes.push(mesh);
     });
 };
 
-	return {
-		VertexFormat:	VertexFormat,
-		Mesh:			Mesh,
-		Model:			Model,    
-	};
+return {
+	VertexFormat:	VertexFormat,
+	Mesh:			Mesh,
+	Model:			Model,    
+};
 
 });
 

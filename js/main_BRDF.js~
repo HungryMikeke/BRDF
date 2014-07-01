@@ -25,11 +25,11 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	var vec3 = glmatrix.vec3;
 
 	// 全局变量
-	var g_WebGLContext;									// WebGL 上下文环境
-	var g_Shader;										// 着色器对象
-	var g_Model;										// 模型对象
+	var g_WebGLContext;										// WebGL 上下文环境
+	var g_Shader;											// 着色器对象
+	var g_Model;											// 模型对象
 	
-	var g_Timer;										// 计时器
+	var g_Timer;											// 计时器
 
 	// 全局参数
 	var g_CanvasAspectRatio = 1.0;
@@ -71,8 +71,8 @@ require(["jquery", "glmatrix", "model", "shader", "timer", "modernizr"], functio
 	var g_Texture0_ID;
 
 	/**
-	 * Adjusts the width and height of the viewport to the
-	 * dimensions of the current WebGL canvas.
+	 * Adjusts the width and height of the Viewport to the
+	 * Dimensions of the current WebGL Canvas.
 	 */
 	var reshapeViewport = function(gl, canvas) {
 		

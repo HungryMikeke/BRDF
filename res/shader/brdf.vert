@@ -52,7 +52,6 @@ void main(void)
 	vTexCoordOutput = vTexCoordAttrib;
 	vDebugOutput = tangent;
 	
-	// gl_Position = mProjection * mCameraView * vec4(vNormalAttrib, 1.0);
 	gl_Position = mProjection * mCameraView * mModelTrans * position;
 }
 
